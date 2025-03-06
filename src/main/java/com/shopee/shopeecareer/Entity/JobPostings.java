@@ -40,7 +40,7 @@ public class JobPostings {
     private String experiencedLevel;
 
     @Column
-    private LocalDateTime postingDate;
+    private Date postingDate;
 
     @Column
     private Date closingDate;

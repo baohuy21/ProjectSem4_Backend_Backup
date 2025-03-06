@@ -2,12 +2,14 @@ package com.shopee.shopeecareer.Controller;
 
 import com.shopee.shopeecareer.DTO.CustomResult;
 import com.shopee.shopeecareer.DTO.InterviewsDTO;
+import com.shopee.shopeecareer.Entity.Interviews;
 import com.shopee.shopeecareer.Service.InterviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -16,10 +18,12 @@ import java.util.Map;
 public class InterviewController {
     @Autowired
     InterviewService interviewsService;
+    @Autowired
+    private InterviewService interviewService;
 
     @GetMapping("list-interview")
-    public ResponseEntity<CustomResult> getlistinterview(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
-        var interview = interviewsService.getlistinterview(page, size);
+    public ResponseEntity<CustomResult> getlistinterview(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestParam(required = false) String categoryName, @RequestParam(required = false) String jobTitle, @RequestParam(required = false) String applicationName,@RequestParam(required = false) String status) {
+        var interview = interviewsService.getlistinterview(page, size, categoryName, jobTitle, applicationName, status);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "List Interview success", interview));
@@ -32,7 +36,7 @@ public class InterviewController {
                 .body(new CustomResult(201, "create  Interview success", createinter));
     }
     @PutMapping("update-interview/{id}")
-    public ResponseEntity<CustomResult> updateinterview(@PathVariable int id,InterviewsDTO interViewDto) {
+    public ResponseEntity<CustomResult> updateinterview(@PathVariable int id,@ModelAttribute InterviewsDTO interViewDto) {
         var updateinterview=interviewsService.updateInterview(id, interViewDto);
 
 
@@ -53,6 +57,23 @@ public class InterviewController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "change status interview success", changestatus));
+    }
+
+    @GetMapping("/blocked-times")
+    public ResponseEntity<?> getBlockedTimes(@RequestParam String date,
+                                             @RequestParam String location) {
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            // Gọi service để lấy danh sách thời gian bị chặn
+            List<String> blockedTimes = interviewService.getBlockedTimesForDate(localDate, location);
+
+            // Trả kết quả về cho client
+            return ResponseEntity.ok(blockedTimes);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Xử lý lỗi (nếu có)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
 
@@ -103,5 +124,28 @@ public class InterviewController {
         return ResponseEntity.ok(data);
     }
 
+    @GetMapping("get-list-interview-future-by-employee")
+    public ResponseEntity<CustomResult> getlistinterviewbyemployeeinfuture() {
+        try {
+            List<Interviews> list = interviewsService.getListInterviewByFuture();
+            return ResponseEntity.ok(new CustomResult(201, "List Inter Success", list));
+        } catch (Exception e) {
+            throw new RuntimeException(" get fail interview  " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/interview-growth-rate-by-employer/{employerID}")
+    public ResponseEntity<Double> getGrowthRate(@PathVariable Integer employerID) {
+        try {
+            Double growthRate = interviewService.calculateGrowthRate(employerID);
+            if (growthRate == null) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // Không có dữ liệu
+            }
+            return ResponseEntity.ok(growthRate);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
 }

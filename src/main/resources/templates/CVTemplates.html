@@ -1,0 +1,220 @@
+<html lang="vi">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f2f5;
+        line-height: 1.6;
+    }
+    .container {
+        display: flex;
+        max-width: 900px;
+        margin: 20px auto;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .sidebar {
+        width: 30%;
+        background-color: #2c3e50;
+        color: #fff;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .sidebar img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: block;
+        margin: 0 auto 20px;
+    }
+    .sidebar h2 {
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 1.5em;
+    }
+    .sidebar .info {
+        margin-bottom: 20px;
+    }
+    .sidebar .info p {
+        margin: 5px 0;
+    }
+    .sidebar .info i {
+        margin-right: 10px;
+    }
+    .sidebar .section-title {
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    .sidebar .skills {
+        margin-bottom: 20px;
+    }
+    .sidebar .skills .skill {
+        margin-bottom: 10px;
+    }
+    .sidebar .skills .skill p {
+        margin: 0;
+    }
+    .sidebar .skills .skill .progress {
+        background-color: #34495e;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    .sidebar .skills .skill .progress div {
+        height: 10px;
+        background-color: #1abc9c;
+    }
+    .main {
+        width: 70%;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .main .section {
+        margin-bottom: 20px;
+    }
+    .main .section-title {
+        font-weight: 700;
+        margin-bottom: 10px;
+        font-size: 1.4em;
+    }
+    .main .section p {
+        margin: 5px 0;
+    }
+    .main .section .item {
+        margin-bottom: 10px;
+    }
+    .main .section .item p {
+        margin: 0;
+    }
+    .main .section .item .date {
+        font-style: italic;
+        color: #7f8c8d;
+    }
+    .main .section .item .description {
+        margin-left: 20px;
+    }
+    .main .section .item .description p {
+        margin: 5px 0;
+    }
+    .main .section .item .description ul {
+        margin: 5px 0 0 20px;
+        padding: 0;
+    }
+    .main .section .item .description ul li {
+        list-style: disc;
+    }
+  </style>
+ </head>
+ <body>
+  <div class="container">
+   <div class="sidebar">
+    <img alt="Profile picture of a person" height="100" src="https://storage.googleapis.com/a1aa/image/MLAtmiQnLcZjOlC5v5gWFua3BKecMRyQWhkXoq1qtRzfZ3GUA.jpg" width="100"/>
+    <h2>TRẦN BẢO HUY</h2>
+    <div class="info">
+     <p><i class="fas fa-phone"></i> 0964512606</p>
+     <p><i class="fas fa-envelope"></i> baohuy787@gmail.com</p>
+     <p><i class="fas fa-map-marker-alt"></i> Quận Bình Tân, Thành phố Hồ Chí Minh, Vietnam</p>
+     <p><i class="fas fa-birthday-cake"></i> 03/12/2001</p>
+     <p><i class="fas fa-male"></i> Nam</p>
+    </div>
+    <div class="section">
+     <div class="section-title">Mục tiêu</div>
+     <p>Tôi mong muốn được làm việc trong môi trường lập trình chuyên nghiệp, nơi tôi có thể nâng cao kiến thức và kỹ năng làm việc của mình.</p>
+     <p>Tôi muốn được tham gia và hỗ trợ cho các dự án của công ty. Tôi tin rằng kiến thức của mình có thể đáp ứng được nhu cầu của công ty.</p>
+    </div>
+    <div class="section">
+        <div class="section-title">
+         Học vấn
+        </div>
+        {{educationList}}
+       </div>
+    <div class="section">
+     <div class="section-title">Kỹ năng</div>
+     <div class="skills">
+      <div class="skill">
+       <p>Laravel</p>
+       <div class="progress">
+        <div style="width: 80%;"></div>
+       </div>
+      </div>
+      <div class="skill">
+       <p>Giao tiếp</p>
+       <div class="progress">
+        <div style="width: 70%;"></div>
+       </div>
+      </div>
+      <div class="skill">
+       <p>Làm việc nhóm</p>
+       <div class="progress">
+        <div style="width: 60%;"></div>
+       </div>
+      </div>
+      <div class="skill">
+       <p>Giao tiếp tiếng Anh</p>
+       <div class="progress">
+        <div style="width: 50%;"></div>
+       </div>
+      </div>
+      <div class="skill">
+       <p>React</p>
+       <div class="progress">
+        <div style="width: 90%;"></div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="main">
+    <div class="section">
+     <div class="section-title"><i class="fas fa-graduation-cap"></i> Học vấn</div>
+     <!-- Content for education goes here -->
+    </div>
+    <div class="section">
+     <div class="section-title"><i class="fas fa-briefcase"></i> Kinh nghiệm làm việc</div>
+     <div class="item">
+      <p><strong>TRUNG TÂM FPT APTECH</strong></p>
+      <p class="date">Tháng 3-2023 - 11-2024</p>
+      <div class="description">
+       <p>Tham gia vào dự án của trung tâm</p>
+       <ul>
+        <li>Dự án trang web tuyển dụng</li>
+        <li>Project sử dụng React để thiết kế web, Asp.net framework thiết kế API</li>
+        <li>Dự án trang web bán hoa tươi</li>
+        <li>Dự án sử dụng hoàn toàn Laravel framework, MySQL</li>
+        <li>Hiện tại đang tham gia 1 dự án thiết kế app tuyển dụng + dự án sử dụng những công nghệ như: React, Spring Boot API, MySQL</li>
+       </ul>
+      </div>
+     </div>
+    </div>
+    <div class="section">
+     <div class="section-title"><i class="fas fa-certificate"></i> Chứng chỉ</div>
+     <div class="item">
+      <p>IELTS 4.5</p>
+     </div>
+    </div>
+    <div class="section">
+     <div class="section-title"><i class="fas fa-heart"></i> Hoạt động</div>
+     <div class="item">
+      <p><strong>Tình nguyện</strong></p>
+      <p class="date">Tháng 4 2021 - Nay</p>
+      <p>Tham gia hoạt động hiến máu nhân đạo tại trường</p>
+     </div>
+    </div>
+    <div class="section">
+     <div class="section-title">Sở thích</div>
+     <ul>
+      <li>Lập trình</li>
+      <li>Du lịch</li>
+      <li>Chơi bóng đá</li>
+     </ul>
+    </div>
+   </div>
+  </div>
+ </body>
+</html>

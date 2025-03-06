@@ -4,9 +4,12 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.shopee.shopeecareer.DTO.EmployersDTO;
 import com.shopee.shopeecareer.DTO.LoginRequest;
+import com.shopee.shopeecareer.DTO.RegisterUserDTO;
 import com.shopee.shopeecareer.Entity.Employers;
+import com.shopee.shopeecareer.Entity.ProfileUser;
 import com.shopee.shopeecareer.Exception.BadRequestException;
 import com.shopee.shopeecareer.Repository.EmployersRepo;
+import com.shopee.shopeecareer.Repository.ProfileUserRepo;
 import com.shopee.shopeecareer.Utils.JwtUtil;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +31,8 @@ import java.util.Map;
 public class AuthService {
     @Autowired
     private EmployersRepo employersRepo;
-
+    @Autowired
+    private ProfileUserRepo profileUserRepo;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -37,14 +41,14 @@ public class AuthService {
 
     private final String DEACTIVE = "Deactive";
     private static final int MAX_FAILED_ATTEMPTS = 5;
-    private static final long LOCK_TIME_DURATION = 15 * 60 * 1000;  // khoa tai khoan trong 15p
+    private static final long LOCK_TIME_DURATION = 15 * 60 * 1000; // khoa tai khoan trong 15p
 
     private static final String RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify";
     @Autowired
     private EmployersService employersService;
 
     // kiểm tra đăng nhập
-    public String authenticate (LoginRequest loginRequest) {
+    public String authenticate(LoginRequest loginRequest) {
         // Validate
         loginRequest.validateRequest();
 
@@ -60,29 +64,29 @@ public class AuthService {
         }
 
         // kiem tra trang thai khoa tai khoan
-        if(isAccountLocked(employer)) {
+        if (isAccountLocked(employer)) {
             throw new BadRequestException("Account is locked in 15 minutes. Please try again later");
         }
 
         // kiem tra mat khau
-        if (!passwordEncoder.matches(loginRequest.getPassword(),employer.getPassword())) {
+        if (!passwordEncoder.matches(loginRequest.getPassword(), employer.getPassword())) {
             handleFailedLogin(employer);
-//            throw new BadRequestException("Wrong email or password");
+            // throw new BadRequestException("Wrong email or password");
             throw new BadRequestException(getFailedLoginMessage(employer));
         }
 
         // Tài khoản chưa được active
-        if(DEACTIVE.equalsIgnoreCase(employer.getAccountStatus())){
+        if (DEACTIVE.equalsIgnoreCase(employer.getAccountStatus())) {
             throw new BadRequestException("Account is deactivated");
         }
-//        employer.setIsFirstLogin(true);
+        // employer.setIsFirstLogin(true);
 
         // Kiểm tra nếu là lần đăng nhập đầu tiên và mật khẩu chưa thay đổi
         if (Boolean.TRUE.equals(employer.getIsFirstLogin()) && !Boolean.TRUE.equals(employer.getIsPasswordChanged())) {
-//            throw new BadRequestException("You need to change your password before proceeding.");
-                return JwtUtil.generateTokenFirstLogin(employer);
+            // throw new BadRequestException("You need to change your password before
+            // proceeding.");
+            return JwtUtil.generateTokenFirstLogin(employer);
         }
-
 
         // Nếu là lần đăng nhập đầu tiên và đã thay đổi mật khẩu, cập nhật trạng thái
         if (Boolean.TRUE.equals(employer.getIsFirstLogin())) {
@@ -104,22 +108,24 @@ public class AuthService {
             return true;
         } else {
             // neu het thoi gian khoa, reset so lan dang nhap sai va thoi gian khoa
-            if(employer.getAccountLockedUntil() != null && employer.getAccountLockedUntil().isBefore(LocalDateTime.now())) {
+            if (employer.getAccountLockedUntil() != null
+                    && employer.getAccountLockedUntil().isBefore(LocalDateTime.now())) {
                 resetFailedLoginAttempts(employer); // reset so lan dang nhap sai khi het thoi gian khoa
             }
             return false;
         }
-//        return false;
+        // return false;
     }
 
     // kiem tra so lan dang nhap sai
     private void handleFailedLogin(Employers employer) {
-        if(employer != null) {
+        if (employer != null) {
             // kiem tra neu tai khoan khong bi khoa
-            if(employer.getAccountLockedUntil() == null || employer.getAccountLockedUntil().isBefore(LocalDateTime.now())) {
+            if (employer.getAccountLockedUntil() == null
+                    || employer.getAccountLockedUntil().isBefore(LocalDateTime.now())) {
                 int attempts = employer.getFailedLoginAttempts() + 1;
                 employer.setFailedLoginAttempts(attempts);
-                if(attempts >= MAX_FAILED_ATTEMPTS) {
+                if (attempts >= MAX_FAILED_ATTEMPTS) {
                     employer.setAccountLockedUntil(LocalDateTime.now().plusMinutes(1));
                 }
                 employersRepo.save(employer);
@@ -137,5 +143,45 @@ public class AuthService {
         employer.setFailedLoginAttempts(0);
         employer.setAccountLockedUntil(null);
         employersRepo.save(employer);
+    }
+
+    public String authenticateUser(LoginRequest loginRequest) {
+        // Validate
+        loginRequest.validateRequest();
+
+        // Lấy LoginRequest từ ProfileUserRepo
+        // Email và mật khẩu không có trong database
+        var profileUser = profileUserRepo.findByEmail(loginRequest.getEmail());
+        if (profileUser == null || !passwordEncoder.matches(loginRequest.getPassword(), profileUser.getPassword())) {
+            throw new BadRequestException("Wrong email or password");
+        }
+
+        // return JwtUtil.generateToken(profileUser);
+        return "Login success";
+    }
+
+    public ProfileUser registerUser(RegisterUserDTO registerUserDTO) {
+
+        if (profileUserRepo.findByEmail(registerUserDTO.getEmail()) != null) {
+            throw new BadRequestException("Email already exists");
+        }
+
+        ProfileUser profileUser = new ProfileUser();
+        BeanUtils.copyProperties(registerUserDTO, profileUser);
+        // profileUser.setPassword(passwordEncoder.encode(registerUserDTO.getPassword()));
+
+        return profileUserRepo.save(profileUser);
+    }
+
+    public String loginWithGoogle(String email) {
+        ProfileUser profileUser = profileUserRepo.findByEmail(email);
+        if (profileUser != null) {
+            return JwtUtil.generateTokenUserinMobile(profileUser);
+        } else {
+            ProfileUser user = new ProfileUser();
+            user.setEmail(email);
+            profileUserRepo.save(user);
+        }
+        return "login fail";
     }
 }

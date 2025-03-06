@@ -16,8 +16,11 @@ public class InterviewsDTO {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 
-    @JsonFormat(pattern = "HH:mm:ss")
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime time;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime endTime;
 
     private String status;
 

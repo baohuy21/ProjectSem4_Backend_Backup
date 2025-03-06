@@ -21,7 +21,7 @@ public class Notifications {
     @Column(name = "notificationNumber")
     private String notificationNumber;
 
-    @Column(columnDefinition = "TEXT",name = "message")
+    @Column(columnDefinition = "TEXT", name = "message")
     private String message;
 
     @Column(name = "sendDate")
@@ -38,7 +38,7 @@ public class Notifications {
     private Employers employers;
 
     @ManyToOne
-    @JoinColumn(name="applicationID",nullable =false)
+    @JoinColumn(name = "applicationID", nullable = false)
     private Applications applications;
 
     @PostPersist

@@ -15,6 +15,16 @@ public interface EmployersRepo extends JpaRepository<Employers, Integer> {
     @Query("SELECT e FROM Employers e ORDER BY e.createdAt DESC")
     Page<Employers> findAllSortedByDate(Pageable pageable);
 
+    Page<Employers> findByFirstNameContainingIgnoreCase(String name, Pageable pageable);
+
+    Page<Employers> findByAccountStatus(String status, Pageable pageable);
+
+    Page<Employers> findByEmailContainingIgnoreCase(String email, Pageable pageable);
+
+    Page<Employers> findByPhoneNumberContainingIgnoreCase(String phone, Pageable pageable);
+
+    Page<Employers> findByFirstNameContainingIgnoreCaseAndAccountStatus(String name, String status, Pageable pageable);
+
     // Phương thức dùng cho JWT Util
 //    EmployersDTO findEmployersDTOByEmail(String email);
 }

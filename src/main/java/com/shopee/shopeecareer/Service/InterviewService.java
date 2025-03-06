@@ -18,9 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 import java.time.LocalDate;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalTime;
+import java.util.*;
 
 @Service
 public class InterviewService {
@@ -34,12 +33,41 @@ public class InterviewService {
     @Autowired
     private EmailService emailService;
 
-    public Page<Interviews> getlistinterview(int page, int size) {
+    public Page<Interviews> getlistinterview(int page, int size, String categoryName, String jobTitle, String applicationName, String status) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Interviews> inter = interviewsRepo.findAll(pageable);
-        if (inter.isEmpty()) {
-            throw new BadRequestException("Interview Not Found");
+        Page<Interviews> inter;
+        if (status != null && !status.isEmpty()) {
+            // Nếu status là "All", tìm tất cả các interview mà không lọc theo status
+            if ("All".equalsIgnoreCase(status)) {
+                // Tìm kiếm theo các điều kiện khác mà không cần lọc theo status
+                if (jobTitle != null && !jobTitle.isEmpty()) {
+                    inter = interviewsRepo.findByApplicationsJobPostingsJobTitleContainingIgnoreCase(jobTitle, pageable);
+                } else if (categoryName != null && !categoryName.isEmpty()) {
+                    inter = interviewsRepo.findByApplicationsJobPostingsJobCategoryCategoryNameContainingIgnoreCase(categoryName, pageable);
+                } else if (applicationName != null && !applicationName.isEmpty()) {
+                    inter = interviewsRepo.findByApplicationsFirstNameContainingIgnoreCase(applicationName, pageable);
+                } else {
+                    inter = interviewsRepo.findAll(pageable); // Nếu không có điều kiện tìm kiếm nào thì trả tất cả
+                }
+            } else {
+                // Nếu status không phải "All", lọc theo status
+                inter = interviewsRepo.findByStatus(status, pageable);
+            }
+        } else {
+            // Nếu không có status, tìm tất cả các interview
+            if (jobTitle != null && !jobTitle.isEmpty()) {
+                inter = interviewsRepo.findByApplicationsJobPostingsJobTitleContainingIgnoreCase(jobTitle, pageable);
+            } else if (categoryName != null && !categoryName.isEmpty()) {
+                inter = interviewsRepo.findByApplicationsJobPostingsJobCategoryCategoryNameContainingIgnoreCase(categoryName, pageable);
+            } else if (applicationName != null && !applicationName.isEmpty()) {
+                inter = interviewsRepo.findByApplicationsFirstNameContainingIgnoreCase(applicationName, pageable);
+            } else {
+                inter = interviewsRepo.findAll(pageable);
+            }
         }
+//        if (inter.isEmpty()) {
+//            throw new BadRequestException("Interview Not Found");
+//        }
 
         // lay ngay hien tai
         LocalDate currentDate = LocalDate.now();
@@ -63,9 +91,9 @@ public class InterviewService {
         if (interViewDto.getStartDate() == null ) {
             throw new BadRequestException("Start Date cannot be empty");
         }
-        if(!interViewDto.getStartDate().isAfter(LocalDate.now())) {
-            throw new BadRequestException("Start Date must be after today");
-        }
+//        if(!interViewDto.getStartDate().isAfter(LocalDate.now())) {
+//            throw new BadRequestException("Start Date must be after today");
+//        }
         if (interViewDto.getStartDate().isBefore(LocalDate.now())) {
             interViewDto.setStatus("Completed");
         } else {
@@ -77,10 +105,10 @@ public class InterviewService {
             throw new BadRequestException("Location cannot be empty ");
         }
 
-
         if(interViewDto.getTime() == null) {
             throw new BadRequestException("Time cannot be empty");
         }
+
         Interviews interview = new Interviews();
         BeanUtils.copyProperties(interViewDto, interview);
         interview.setStartDate(interViewDto.getStartDate());
@@ -88,6 +116,9 @@ public class InterviewService {
         interview.setCreatedAt(new Date());
         interview.setApplications(applicationOpt);
         interview.setEmployers(employerOpt.get());
+
+        // check time co null khong
+
 
         interviewsRepo.save(interview);
         applicationsRepo.save(applicationOpt);
@@ -124,10 +155,13 @@ public class InterviewService {
         if (interViewDto.getLocation() == null || interViewDto.getLocation().trim().isEmpty()) {
             throw new BadRequestException("Location cannot be empty ");
         }
+
+
         BeanUtils.copyProperties(interViewDto, inter);
         inter.setUpdatedAt(new Date());
         inter.setStartDate(interViewDto.getStartDate());
         inter.setTime(interViewDto.getTime());
+        inter.setEndTime(interViewDto.getTime().plusHours(1));
         inter.setLocation(interViewDto.getLocation());
         inter.setStatus("In Progress");
 
@@ -191,5 +225,82 @@ public class InterviewService {
     public List<Map<String, Object>> getInterviewCountGroupedByDate(Integer employerId) {
         return interviewsRepo.getInterviewCountGroupedByDate(employerId);
     }
+
+    public List<String> getBlockedTimesForDate(LocalDate date, String location) {
+        // Lấy danh sách các khoảng thời gian đã được chọn từ database
+        List<Interviews> interviews = interviewsRepo.findInterviewsByDateAndLocation(date, location);
+
+        // Khởi tạo danh sách các thời gian bị chặn
+        List<String> blockedTimes = new ArrayList<>();
+
+        // Duyệt qua từng khoảng thời gian và thêm các giá trị bị chặn
+        for (Interviews interview : interviews) {
+            LocalTime startTime = interview.getTime();
+            LocalTime endTime = interview.getEndTime();
+
+            // Thêm tất cả các khoảng thời gian 15 phút từ startTime đến endTime
+            while (!startTime.isAfter(endTime)) {
+                blockedTimes.add(startTime.toString());
+                startTime = startTime.plusMinutes(60); // Tăng thêm 15 phút
+            }
+        }
+        return blockedTimes;
+    }
+
+    public List<Interviews> getListInterviewByFuture(){
+        var list=interviewsRepo.findAllInterviewsAfterCurrentDate(LocalDate.now());
+        return list;
+    }
+
+    public Long CountInterviewInlastMonthByEmployer(Integer employerID) {
+        Calendar calendar = Calendar.getInstance();
+
+        // Lấy ngày đầu tiên của tháng trước
+        calendar.add(Calendar.MONTH, -1);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        Date startDate = calendar.getTime();
+
+        // Lấy ngày đầu tiên của tháng hiện tại
+        calendar.add(Calendar.MONTH, 1); // Tiến tới tháng hiện tại
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        Date endDate = calendar.getTime();
+
+        // Gọi repository để đếm số lượng
+        return interviewsRepo.countInteriewByEmployerAndDateRange(employerID, startDate, endDate);
+    }
+
+    public Long CountInterviewThisMonthByEmployer(Integer employerID) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        Date startDate = calendar.getTime();
+        calendar.add(Calendar.MONTH, 1);
+        Date endDate = calendar.getTime();
+        return interviewsRepo.countInteriewByEmployerAndDateRange(employerID, startDate, endDate);
+    }
+
+    public Double calculateGrowthRate(Integer employerID) {
+        try {
+            Long lastMonthCount = CountInterviewInlastMonthByEmployer(employerID);
+            Long thisMonthCount = CountInterviewThisMonthByEmployer(employerID);
+            if (lastMonthCount == 0) {
+                return null;
+            }
+            return ((double) (thisMonthCount - lastMonthCount) / lastMonthCount) * 100;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Not Found  Interview fail : " + e.getMessage());
+        }
+
+    }
+
+//    private void releaseBlockedTime(LocalDate date, LocalTime time, String location) {
+//        List<Interviews> interviews = interviewsRepo.findInterviewsByDateAndLocation(date, location);
+//        for (Interviews interview : interviews) {
+//            if (interview.getTime().equals(time)) {
+//                // Xóa thời gian khỏi danh sách blocked times
+//                interviewsRepo.delete(interview);
+//            }
+//        }
+//    }
 
 }

@@ -26,18 +26,22 @@ public class EmployersController {
     @GetMapping("/employers")
     public Page<Employers> getEmployers(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return employersService.getEmployers(page, size);  // Trả về danh sách phân trang
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone,
+            @RequestParam(defaultValue = "All") String status) {
+        return employersService.getEmployers(page, size, firstName, email, phone, status);  // Trả về danh sách phân trang
     }
 
     // Hiển thị danh sách nhân viên
-    @GetMapping("list-employer")
-    public ResponseEntity<CustomResult> getListEmployer(@RequestParam(defaultValue = "0") int page,
-                                                        @RequestParam(defaultValue = "10") int size) {
-        var employers = employersService.getEmployers(page, size);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new CustomResult(201, "Total employers: " + employers.getSize(), employers));
-    }
+//    @GetMapping("list-employer")
+//    public ResponseEntity<CustomResult> getListEmployer(@RequestParam(defaultValue = "0") int page,
+//                                                        @RequestParam(defaultValue = "10") int size) {
+//        var employers = employersService.getEmployers(page, size);
+//        return ResponseEntity.status(HttpStatus.CREATED)
+//                .body(new CustomResult(201, "Total employers: " + employers.getSize(), employers));
+//    }
 
     // hiển thị nhân viên cụ thể
     @GetMapping("get-employer/{id}")

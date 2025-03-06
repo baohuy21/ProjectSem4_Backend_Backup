@@ -55,13 +55,41 @@ public class EmployersService {
         return password.toString();
     }
 
-    public Page<Employers> getEmployers(int page, int size) {
+//    public Page<Employers> getEmployers(int page, int size) {
+//        Pageable pageable = PageRequest.of(page, size);
+//        Page<Employers> listEmployer = employersRepo.findAllSortedByDate(pageable);
+//        if(listEmployer.isEmpty()) {
+//            throw new BadRequestException("No employer found");
+//        }
+//        return listEmployer; // Sử dụng findAll() đã có sẵn từ JpaRepository
+//    }
+
+    public Page<Employers> getEmployers(int page, int size, String name, String email, String phone, String status) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Employers> listEmployer = employersRepo.findAllSortedByDate(pageable);
-        if(listEmployer.isEmpty()) {
-            throw new BadRequestException("No employer found");
+
+        Page<Employers> listEmployer;
+
+        // Kiểm tra xem tên có được cung cấp hay không, nếu có thì tìm kiếm theo tên, nếu không thì tìm tất cả
+
+        if (name != null && !name.isEmpty()) {
+            listEmployer = employersRepo.findByFirstNameContainingIgnoreCase(name, pageable);
+        } else if (email != null && !email.isEmpty()) {
+            listEmployer = employersRepo.findByEmailContainingIgnoreCase(email, pageable);
+        } else if (phone != null && !phone.isEmpty()) {
+            listEmployer = employersRepo.findByPhoneNumberContainingIgnoreCase(phone, pageable);
+        } else if (status != null && !status.equals("All")) {
+            // Nếu status là Active hoặc Deactive, tìm kiếm theo status
+            listEmployer = employersRepo.findByAccountStatus(status, pageable);
         }
-        return listEmployer; // Sử dụng findAll() đã có sẵn từ JpaRepository
+        else {
+            listEmployer = employersRepo.findAll(pageable); // Nếu không có tên thì tìm tất cả
+        }
+
+//        if (listEmployer.isEmpty()) {
+//            throw new BadRequestException("No employer found");
+//        }
+
+        return listEmployer;
     }
 
     public Employers getEmployer(int id) {
@@ -101,12 +129,12 @@ public class EmployersService {
         if (employersDTO.getPhoto() != null && !employersDTO.getPhoto().isEmpty()) {
             // Kiểm tra định dạng file và kích thước file
             String contentType = employersDTO.getPhoto().getContentType();
-            if (!contentType.equals("image/jpeg") && !contentType.equals("image/png")) {
+            if (!contentType.equals("image/jpeg") && !contentType.equals("image/png") && !contentType.equals("image/jpg")) {
                 throw new BadRequestException("Only JPG and PNG images are allowed");
             }
 
-            if (employersDTO.getPhoto().getSize() > 5 * 1024 * 1024) { // 5MB
-                throw new BadRequestException("File size must not exceed 5MB");
+            if (employersDTO.getPhoto().getSize() > 1 * 1024 * 1024) { // 5MB
+                throw new BadRequestException("File size must not exceed 1MB");
             }
             Path path = Paths.get(uploadDir + "/employee");
             try {
@@ -174,15 +202,17 @@ public class EmployersService {
         String emailRegex = "^[A-Za-z0-9.,!@#$%^&*()_-]+@(.+)$";
         if (employersDTO.getEmail()==null || employersDTO.getEmail().trim().isEmpty()) {
             throw new BadRequestException("Email cannot be empty");
-
         }
         if(!employersDTO.getEmail().matches(emailRegex)) {
             throw new BadRequestException("Invalid email format");
         }
 
         if (employersDTO.getFirstName()==null || employersDTO.getFirstName().trim().isEmpty()) {
-            throw new BadRequestException("First Name cannot be empty");
+            throw new BadRequestException("Fullname cannot be empty");
+        }
 
+        if(employersDTO.getFirstName().matches(".*\\d.*")) {
+            throw new BadRequestException("Fullname cannot contain numbers");
         }
 
         if (employersDTO.getPhoneNumber()==null || employersDTO.getPhoneNumber().trim().isEmpty()) {
@@ -242,7 +272,7 @@ public class EmployersService {
                 }
 
                 // Kiểm tra kích thước file (dưới 5MB)
-                if (employersDTO.getPhoto().getSize() > 5 * 1024 * 1024) { // 5MB
+                if (employersDTO.getPhoto().getSize() > 1 * 1024 * 1024) { // 5MB
                     throw new BadRequestException("File size must not exceed 5MB");
                 }
                 Path filePath = path.resolve(filename);

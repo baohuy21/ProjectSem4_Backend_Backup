@@ -10,6 +10,8 @@ import com.shopee.shopeecareer.Repository.InterviewsRepo;
 import com.shopee.shopeecareer.Repository.JobCategoriesRepo;
 import com.shopee.shopeecareer.Repository.JobPostingsRepo;
 import com.shopee.shopeecareer.ResponseDTO.JobResponseDTO;
+import com.shopee.shopeecareer.UserController.jobFilterRequest;
+
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -45,17 +48,37 @@ public class JobService {
     @Autowired
     private InterviewsRepo interviewsRepo;
 
-    public Page<JobCategories> getCategories(int page, int size) {
+    public Page<JobCategories> getCategories(int page, int size, String isActive, String categoryName) {
         // Sort theo ngày mới nhất đến cũ nhất mặc định
         Pageable pageable = PageRequest.of(page, size);
 
         // Lấy danh sách phân trang theo tiêu chí lọc
-        Page<JobCategories> jobCategoriesPage = jobCategoriesRepo.findAllSortedByDate(pageable);
+        Page<JobCategories> jobCategoriesPage;
+
+        if ("All".equalsIgnoreCase(isActive)) {
+            if (categoryName != null && !categoryName.isEmpty()) {
+                // Lọc chỉ theo tên
+                jobCategoriesPage = jobCategoriesRepo.findByCategoryNameContainingIgnoreCase(categoryName, pageable);
+            } else {
+                // Không lọc, chỉ phân trang
+                jobCategoriesPage = jobCategoriesRepo.findAllSortedByDate(pageable);
+            }
+        } else {
+            // Lọc theo status và name (nếu có)
+            if (categoryName != null && !categoryName.isEmpty()) {
+                jobCategoriesPage = jobCategoriesRepo.findByIsActiveAndCategoryNameContainingIgnoreCase(
+                        isActive, categoryName, pageable);
+            } else {
+                // Chỉ lọc theo status
+                jobCategoriesPage = jobCategoriesRepo.findByIsActive(isActive, pageable);
+            }
+        }
 
         // Kiểm tra nếu không có dữ liệu
-        if (jobCategoriesPage.isEmpty()) {
-            throw new BadRequestException("Not Found Job Categories");
-        }
+//        if (jobCategoriesPage.isEmpty()) {
+//            throw new BadRequestException("Not Found Job Categories");
+//        }
+
 
         return jobCategoriesPage;
     }
@@ -103,7 +126,9 @@ public class JobService {
         if(jobCategoriesDTO.getCategoryName() == null || jobCategoriesDTO.getCategoryName().trim().isEmpty()){
             throw new BadRequestException("Category name cannot be empty");
         }
-
+        if (jobCategoriesDTO.getCategoryName().matches(".*\\d.*")) {
+            throw new BadRequestException("Category name cannot contain numbers");
+        }
         // Tao job category va gan gia tri moi vao no
         JobCategories jobCategories = new JobCategories();
         jobCategories.setCategoryName(jobCategoriesDTO.getCategoryName());
@@ -149,25 +174,53 @@ public class JobService {
         return existingJobCategory;
     }
 
-    public Page<JobPostings> getJobPosting(int page, int size, String status) {
+    public Page<JobPostings> getJobPosting(int page, int size, String status, String jobTitle, String categoryName) {
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<JobPostings> jobposting = jobPostingsRepo.findAll(pageable);
-        for(var job: jobposting){
-            job.setTotalSuccessApplicant(interviewsRepo.countApplicantAccepted(job.getJobID()));
-        }
+        Page<JobPostings> jobposting;
         if ("Draft".equalsIgnoreCase(status)) {
-            jobposting = jobPostingsRepo.findByStatus("Draft", pageable);
+            if (jobTitle != null && !jobTitle.isEmpty()) {
+                jobposting = jobPostingsRepo.findByStatusAndJobTitleContainingIgnoreCase("Draft", jobTitle, pageable);
+            }
+            else if (categoryName != null && !categoryName.isEmpty()) {
+                jobposting = jobPostingsRepo.findByStatusAndJobCategoryCategoryNameContainingIgnoreCase("Draft", categoryName, pageable);
+            }
+            else {
+                jobposting = jobPostingsRepo.findByStatus("Draft", pageable);
+            }
+//            jobposting = jobPostingsRepo.findByStatus("Draft", pageable);
         } else if ("Publish".equalsIgnoreCase(status)) {
-            jobposting = jobPostingsRepo.findByStatus("Publish", pageable);
+            if (jobTitle != null && !jobTitle.isEmpty()) {
+                jobposting = jobPostingsRepo.findByStatusAndJobTitleContainingIgnoreCase("Publish", jobTitle, pageable);
+            }
+            else if (categoryName != null && !categoryName.isEmpty()) {
+                jobposting = jobPostingsRepo.findByStatusAndJobCategoryCategoryNameContainingIgnoreCase("Publish", categoryName, pageable);
+            }
+            else {
+                jobposting = jobPostingsRepo.findByStatus("Publish", pageable);
+            }
+//            jobposting = jobPostingsRepo.findByStatus("Publish", pageable);
         } else if ("Close".equalsIgnoreCase(status)) {
-            jobposting = jobPostingsRepo.findByStatus("Close", pageable);
+            if (jobTitle != null && !jobTitle.isEmpty()) {
+                jobposting = jobPostingsRepo.findByStatusAndJobTitleContainingIgnoreCase("Close", jobTitle, pageable);
+            }
+            else if (categoryName != null && !categoryName.isEmpty()) {
+                jobposting = jobPostingsRepo.findByStatusAndJobCategoryCategoryNameContainingIgnoreCase("Close", categoryName, pageable);
+            }
+            else {
+                jobposting = jobPostingsRepo.findByStatus("Close", pageable);
+            }
+//            jobposting = jobPostingsRepo.findByStatus("Close", pageable);
         } else {
             jobposting = jobPostingsRepo.findAll(pageable); // Trả về tất cả job
         }
-        if (jobposting.isEmpty()) {
-            throw new BadRequestException("Not Found JobPosting");
+//        if (jobposting.isEmpty()) {
+//            throw new BadRequestException("Not Found JobPosting");
+//        }
+        for(var job: jobposting){
+            job.setTotalSuccessApplicant(interviewsRepo.countApplicantAccepted(job.getJobID()));
         }
+
         return jobposting;
     }
 
@@ -180,21 +233,41 @@ public class JobService {
     }
 
     // Hien thi Job List theo Category
-    public Page<JobPostings> getJobsByCategory(Integer categoryID, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+//    public Page<JobPostings> getJobsByCategory(Integer categoryID, int page, int size) {
+//        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+//
+//        // Gọi repository để lấy danh sách công việc theo categoryID và phân trang
+//        Page<JobPostings> listJobPostingByCategory = jobPostingsRepo.findJobPostingsByCategoryID(categoryID, pageable);
+//
+//        // Kiểm tra xem danh sách có rỗng hay không
+//        if (listJobPostingByCategory.isEmpty()) {
+//            // Nếu không có công việc nào, ném lỗi
+//            throw new BadRequestException("No job posting found for category ID: " + categoryID);
+//        }
+//
+//        // Trả về kết quả phân trang
+//        return listJobPostingByCategory;
+//    }
 
-        // Gọi repository để lấy danh sách công việc theo categoryID và phân trang
-        Page<JobPostings> listJobPostingByCategory = jobPostingsRepo.findJobPostingsByCategoryID(categoryID, pageable);
+    public Page<JobPostings> getJobsByCategoryAndTitle(Integer categoryID, int page, int size, String status, String jobTitle) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending()); // Sắp xếp theo ngày tạo
 
-        // Kiểm tra xem danh sách có rỗng hay không
-        if (listJobPostingByCategory.isEmpty()) {
-            // Nếu không có công việc nào, ném lỗi
-            throw new BadRequestException("No job posting found for category ID: " + categoryID);
+        // Kiểm tra nếu có cả tham số tìm kiếm theo status và jobTitle
+        if (status != null && !status.equalsIgnoreCase("All") && jobTitle != null && !jobTitle.trim().isEmpty()) {
+            // Nếu có cả status và jobTitle
+            return jobPostingsRepo.findByJobCategoryCategoryIDAndStatusAndJobTitleContainingIgnoreCase(categoryID, status, jobTitle, pageable);
+        } else if (status != null && !status.equalsIgnoreCase("All")) {
+            // Nếu chỉ có status
+            return jobPostingsRepo.findByJobCategoryCategoryIDAndStatus(categoryID, status, pageable);
+        } else if (jobTitle != null && !jobTitle.trim().isEmpty()) {
+            // Nếu chỉ có jobTitle
+            return jobPostingsRepo.findByJobCategoryCategoryIDAndJobTitleContainingIgnoreCase(categoryID, jobTitle, pageable);
+        } else {
+            // Nếu không có bộ lọc nào, trả về tất cả job postings trong categoryID
+            return jobPostingsRepo.findByJobCategoryCategoryID(categoryID, pageable);
         }
-
-        // Trả về kết quả phân trang
-        return listJobPostingByCategory;
     }
+
 
     public JobPostings getJobByID(int id) {
         JobPostings jobPostings = jobPostingsRepo.findById(id)
@@ -212,6 +285,9 @@ public class JobService {
         if(jobPostingDTO.getJobTitle() == null || jobPostingDTO.getJobTitle().trim().isEmpty()){
             throw new BadRequestException("Job Title cannot be empty");
         }
+//        if(jobPostingDTO.getJobTitle().matches(".*\\d.*")){
+//            throw new BadRequestException("Job Title cannot contain numbers");
+//        }
         if(jobPostingDTO.getLocation() == null || jobPostingDTO.getLocation().trim().isEmpty()){
             throw new BadRequestException("Location cannot be empty");
         }
@@ -242,8 +318,10 @@ public class JobService {
         JobPostings job = jobPostingsRepo.findById(id)
                 .orElseThrow(() -> new BadRequestException("Job Posting Not Found  "));
         if (jobPostingDTO.getJobTitle() == null || jobPostingDTO.getJobTitle().trim().isEmpty()) {
-            throw new BadRequestException("Title cannot be empty");
-
+            throw new BadRequestException("Job Title cannot be empty");
+        }
+        if (jobPostingDTO.getJobTitle().matches(".*\\d.*")) {
+            throw new BadRequestException("Job Title cannot contains number");
         }
         if (jobPostingDTO.getJobDescription() == null || jobPostingDTO.getJobDescription().trim().isEmpty()) {
             throw new BadRequestException("Description cannot be empty");
@@ -271,6 +349,7 @@ public class JobService {
         job.setRequirements(jobPostingDTO.getRequirements());
         job.setExperiencedLevel(jobPostingDTO.getExperiencedLevel());
         job.setStatus(jobPostingDTO.getStatus());
+
         // Kiểm tra và cập nhật trạng thái nếu đến ngày closingDate
         LocalDate closingDateLocal = job.getClosingDate().toInstant()
                 .atZone(ZoneId.systemDefault())
@@ -292,10 +371,10 @@ public class JobService {
         JobPostings existJobPostings = jobPostingsRepo.findById(id)
                 .orElseThrow(() -> new BadRequestException("Job Not Found"));
         if (existJobPostings != null) {
-
             if ("Draft".equalsIgnoreCase(existJobPostings.getStatus())) {
                 existJobPostings.setStatus("Publish");
                 existJobPostings.setUpdatedAt(new Date());
+                existJobPostings.setPostingDate(new Date());
                 jobPostingsRepo.save(existJobPostings);
                 return existJobPostings;
             }
@@ -307,9 +386,11 @@ public class JobService {
         JobPostings existJobPostings = getJobByID(id);
         if ("Publish".equalsIgnoreCase(existJobPostings.getStatus())) {
             existJobPostings.setStatus("Close");
-        } else {
-            existJobPostings.setStatus("Open");
+            existJobPostings.setClosingDate(new Date());
         }
+//        else {
+//            existJobPostings.setStatus("Open");
+//        }
         jobPostingsRepo.save(existJobPostings);
         return existJobPostings;
     }
@@ -323,12 +404,10 @@ public class JobService {
     /// Service For Employer
     /// Emploers////////////////////////////////////////////////////////////////////////////////////
 
-    public Page<JobPostings> listJobPostingByEmployee(int employerID,int page ,int size) throws BadRequestException {
-
+    public Page<JobPostings> listJobPostingByEmployee(int employerID,int page ,int size) {
         if (employerID <= 0) {
             throw new BadRequestException("Employer ID must be greater than 0");
         }
-
         var employerOpt = employersRepo.findById(employerID);
         if (employerOpt.isEmpty()) {
             throw new BadRequestException("Not Found Employer");
@@ -336,9 +415,7 @@ public class JobService {
         Pageable pageable = PageRequest.of(page, size);
         Page<JobPostings> jobpostinglist = jobPostingsRepo.findJobsByEmployer(employerID,pageable);
         for (var job : jobpostinglist) {
-
             job.setTotalPassApplication(interviewsRepo.countInterviewsAcceptedByJob(job.getJobID()));
-
         }
 
         return jobPostingsRepo.findJobsByEmployer(employerID,pageable);
@@ -428,5 +505,81 @@ public class JobService {
     public Long CountJobByEmployer(@PathVariable Integer employerID){
         var count=jobPostingsRepo.CountJobPostingByEmployer(employerID);
         return count;
+    }
+
+    public Long CountJobPostedInlastMonthByEmployer(Integer employerID) {
+        Calendar calendar = Calendar.getInstance();
+
+        // Lấy ngày đầu tiên của tháng trước
+        calendar.add(Calendar.MONTH, -1);
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        Date startDate = calendar.getTime();
+
+        // Lấy ngày đầu tiên của tháng hiện tại
+        calendar.add(Calendar.MONTH, 1); // Tiến tới tháng hiện tại
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+
+        Date endDate = calendar.getTime();
+
+        // Gọi repository để đếm số lượng
+        return jobPostingsRepo.CountJobPostingInLastMonthbyEmployer(employerID, startDate, endDate);
+    }
+
+    // Đếm số lượng công việc đăng trong tháng hiện tại
+    public Long CountJobPostedThisMonthByEmployer(Integer employerID) {
+        Calendar calendar = Calendar.getInstance();
+
+        // Lấy ngày đầu tiên của tháng hiện tại
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        Date startDate = calendar.getTime();
+
+        // Lấy ngày đầu tiên của tháng tiếp theo
+        calendar.add(Calendar.MONTH, 1);
+        Date endDate = calendar.getTime();
+
+        // Gọi repository để đếm số lượng
+        return jobPostingsRepo.CountJobPostingInLastMonthbyEmployer(employerID, startDate, endDate);
+    }
+
+    // Tính tỷ lệ tăng trưởng
+    public Double calculateGrowthRate(Integer employerID) {
+        Long lastMonthCount = CountJobPostedInlastMonthByEmployer(employerID);
+        Long thisMonthCount = CountJobPostedThisMonthByEmployer(employerID);
+
+        if (lastMonthCount == 0) {
+            // Nếu không có dữ liệu tháng trước, trả về null hoặc giá trị đặc biệt
+            return null; // Không thể tính toán tỷ lệ
+        }
+        // Tính tỷ lệ tăng trưởng
+        return ((double) (thisMonthCount - lastMonthCount) / lastMonthCount) * 100;
+    }
+
+    // flutter service
+    public List<JobCategories> searchJobCate(String search) {
+        List<JobCategories> jobCategories = new ArrayList<>();
+        if (search == null || search.trim().isEmpty()) {
+            jobCategories = jobCategoriesRepo.GetAllCate();
+        } else {
+            jobCategories = jobCategoriesRepo.SearchCate(search);
+        }
+        return jobCategories;
+    }
+    public List<JobPostings> getjobbycateId(Integer id) {
+       if (id != null) {
+        List<JobPostings> jobs = jobPostingsRepo.GetJobPostingsByCategoryID(id);
+        
+        // Kiểm tra nếu không tìm thấy danh sách công việc nào
+        if (jobs.isEmpty()) {
+            throw new BadRequestException("No job postings found for this category.");
+        }
+        return jobs;
+    } else {
+        // Trường hợp id là null, trả về lỗi Bad Request
+        throw new BadRequestException("Category ID cannot be null.");
+    }
+    }
+    public List<JobPostings> filterJob(Integer id, jobFilterRequest jobFilterRequest) {
+        List<JobPostings> jobPostings = jobPostingsRepo.filterJob(id, jobFilterRequest.getExperienceType(), jobFilterRequest.getLocation());
+        return jobPostings;
     }
 }

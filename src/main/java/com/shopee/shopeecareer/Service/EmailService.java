@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.text.SimpleDateFormat;
 
@@ -57,9 +58,9 @@ public class EmailService {
         String content = String.format(
                 "<h3>Congrats %s!</h3>" +
                         "<p>Your application for the job position of <strong>%s</strong> has been successfully submitted.</p>" +
-
                         "<p>Application details:</p>" +
                         "<ul>" +
+                        "<li>Application Code: %s (You can use this code to track your application status)</li>" +
                         "<li>Application Date: %s</li>" +
                         "<li>Position: %s</li>" +
                         "<li>Status: %s</li>" +
@@ -67,6 +68,7 @@ public class EmailService {
                         "<p>Thank you for applying to Shopee Career!</p>",
                 applications.getFirstName(),
                 applications.getJobPostings().getJobTitle(),
+                applications.getJobPostings().getJobNumber(),
                 formattedDate,
                 applications.getJobPostings().getJobTitle(),
                 applications.getApplicationStatus()
@@ -113,6 +115,12 @@ public class EmailService {
         mimeMessageHelper.setTo(toEmail);
         mimeMessageHelper.setSubject(subject);
         mimeMessageHelper.setText(content, true); // true để gửi email dưới dạng HTML
+
+        MultipartFile file = applications.getFile(); // Lấy file từ Applications
+        if (file != null && !file.isEmpty()) {
+            mimeMessageHelper.addAttachment(file.getOriginalFilename(), file);
+        }
+
         javaMailSender.send(mimeMessage);
     }
 

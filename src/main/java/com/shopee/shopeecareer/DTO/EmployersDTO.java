@@ -52,6 +52,10 @@ public class EmployersDTO {
             throw new BadRequestException("First name cannot be empty");
         }
 
+        if(firstName.matches(".*\\d.*")) {
+            throw new BadRequestException("Fullname cannot contain numbers");
+        }
+
         // so dien thoai khong duoc de trong
         if(phoneNumber == null || phoneNumber.trim().isEmpty()) {
             throw new BadRequestException("Phone number cannot be empty");

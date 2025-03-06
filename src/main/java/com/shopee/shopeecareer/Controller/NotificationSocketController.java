@@ -8,6 +8,7 @@ import com.shopee.shopeecareer.Repository.NotificationsRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,5 +58,43 @@ public class NotificationSocketController {
         System.out.println(notificationsDTO);
         System.out.println("Notification saved: " + notificationsRepo.save(notification));
         return notificationsDTO;
+    }
+
+    @MessageMapping("/interview")
+    @SendTo("/topic/user/blockedTimes")
+    public BlockedTimeMessage sendBlockedTime(BlockedTimeMessage message) {
+        // Xử lý logic lưu thông tin nếu cần thiết
+        return message; // Gửi lại thông tin đến tất cả các client
+    }
+
+    public static class BlockedTimeMessage {
+        private String date;
+        private String location;
+        private String time;
+
+        // Getters và setters
+        public String getDate() {
+            return date;
+        }
+
+        public void setDate(String date) {
+            this.date = date;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public void setLocation(String location) {
+            this.location = location;
+        }
+
+        public String getTime() {
+            return time;
+        }
+
+        public void setTime(String time) {
+            this.time = time;
+        }
     }
 }

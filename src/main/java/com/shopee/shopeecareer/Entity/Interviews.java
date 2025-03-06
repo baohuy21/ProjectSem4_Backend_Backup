@@ -33,6 +33,11 @@ public class Interviews {
     @JsonFormat(pattern = "HH:mm")
     private LocalTime  time;
 
+    @Column(name = "endTime")
+    @Temporal(TemporalType.TIME)
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime endTime;
+
     @Column(name = "location")
     private String location;
 
@@ -44,6 +49,9 @@ public class Interviews {
 
     @Column(name = "updatedAt")
     private Date updatedAt;
+
+    @Column(name = "locked")
+    private Boolean locked;
 
     @ManyToOne
     @JoinColumn(name = "applicationID", nullable = false)
@@ -57,6 +65,14 @@ public class Interviews {
     public void generateInterviewNumber() {
         if (interviewNumber == null) {
             this.interviewNumber = String.format("IV-%04d", interviewID);
+        }
+    }
+
+    @PrePersist
+    public void calculateEndTime() {
+        if (this.time != null) {
+            // thoi gian ket thuc phong van se la 1 tieng
+            this.endTime = this.time.plusHours(1);
         }
     }
 }

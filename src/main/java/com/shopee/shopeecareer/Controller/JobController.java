@@ -23,19 +23,20 @@ public class JobController {
     @Autowired
     private JobService jobService;
 
-    @Autowired
-    private JobCategoriesRepo jobCategoriesRepo;
+    // @Autowired
+    // private JobCategoriesRepo jobCategoriesRepo;
 
-    @Autowired
-    private JobPostingsRepo jobPostingsRepo;
+    // @Autowired
+    // private JobPostingsRepo jobPostingsRepo;
 
     // Phân trang
     @GetMapping("job-category")
     public ResponseEntity<CustomResult> getJobCategories(
-            @RequestParam(defaultValue = "0") int page,  // `page` hợp lệ
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        Page<JobCategories> result = jobService.getCategories(page, size);
+            @RequestParam(defaultValue = "0") int page, // `page` hợp lệ
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "All") String statusFilter,
+            @RequestParam(required = false) String nameFilter) {
+        Page<JobCategories> result = jobService.getCategories(page, size, statusFilter, nameFilter);
         return ResponseEntity.ok(new CustomResult(200, "List Category", result));
     }
 
@@ -51,16 +52,19 @@ public class JobController {
     }
 
     // Hien thi danh sach job category
-//    @GetMapping("list-job-category")
-//    public ResponseEntity<CustomResult> getAllJobCategories(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
-//        var jobCategories = jobService.getCategories(page, size);
-//        return ResponseEntity.status(HttpStatus.CREATED)
-//                .body(new CustomResult(201, "Total list category: " + jobCategories.getSize(), jobCategories));
-//    }
+    // @GetMapping("list-job-category")
+    // public ResponseEntity<CustomResult>
+    // getAllJobCategories(@RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size) {
+    // var jobCategories = jobService.getCategories(page, size);
+    // return ResponseEntity.status(HttpStatus.CREATED)
+    // .body(new CustomResult(201, "Total list category: " +
+    // jobCategories.getSize(), jobCategories));
+    // }
 
     @GetMapping("jobcategorybyid/{id}")
     public ResponseEntity<CustomResult> jobcategorybyid(@PathVariable int id) {
-        var detailjobcate=jobService.getcategorybyid(id);
+        var detailjobcate = jobService.getcategorybyid(id);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "Update Job Category successful", detailjobcate));
     }
@@ -73,7 +77,8 @@ public class JobController {
     }
 
     @PutMapping("update-job-category/{id}")
-    public ResponseEntity<CustomResult> updatejobcategory(@PathVariable int id, @ModelAttribute JobCategoriesDTO jobCategoriesDto)  {
+    public ResponseEntity<CustomResult> updatejobcategory(@PathVariable int id,
+            @ModelAttribute JobCategoriesDTO jobCategoriesDto) {
         var updatecate = jobService.updateJobCategories(id, jobCategoriesDto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "update Job Category successful", updatecate));
@@ -81,29 +86,63 @@ public class JobController {
 
     @PutMapping("change-status-category/{id}")
     public ResponseEntity<CustomResult> changeStatusJobCategory(@PathVariable("id") int id) {
-        JobCategories changeStatus= jobService.changeStatusJobCategory(id);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new CustomResult(201, "Category updated successfully", changeStatus));
+        JobCategories changeStatus = jobService.changeStatusJobCategory(id);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new CustomResult(201, "Category updated successfully", changeStatus));
     }
 
+    // @GetMapping("list-jobposting")
+    // public ResponseEntity<CustomResult>
+    // getlistjobposting(@RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue =
+    // "All") String status) {
+    // var jobpost = jobService.getJobPosting(page, size, status);
+    
+    // return ResponseEntity.status(HttpStatus.CREATED)
+    // .body(new CustomResult(201, "Total Job Posting: " + jobpost.getSize(),
+    // jobpost));
+    // }
+
     @GetMapping("list-jobposting")
-    public ResponseEntity<CustomResult> getlistjobposting(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "All") String status) {
-        var jobpost = jobService.getJobPosting(page, size, status);
+    public ResponseEntity<CustomResult> getListJobPosting(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "All") String status,
+            @RequestParam(required = false) String jobTitle,
+            @RequestParam(required = false) String categoryName) {
+
+        var jobPost = jobService.getJobPosting(page, size, status, jobTitle, categoryName);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new CustomResult(201, "Total Job Posting: " + jobPost.getSize(), jobPost));
+    }
+
+    // @GetMapping("list-job-by-category/{categoryID}")
+    // public ResponseEntity<CustomResult>
+    // getAllJobsByCategory(@PathVariable("categoryID") int categoryID,
+    // @RequestParam("page") int page, @RequestParam("size") int size) {
+    // // Lấy danh sách công việc theo categoryID, phân trang và sắp xếp
+    // Page<JobPostings> jobs = jobService.getJobsByCategory(categoryID, page,
+    // size);
+    //
+    // return ResponseEntity.status(HttpStatus.OK)
+    // .body(new CustomResult(201, "Total list job: " + jobs.getTotalElements(),
+    // jobs));
+    // }
+    @GetMapping("list-job-by-category/{categoryID}")
+    public ResponseEntity<CustomResult> getlistjobposting(@RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "All") String status,
+            @RequestParam(required = false) String jobTitle,
+            @PathVariable Integer categoryID) {
+        var jobpost = jobService.getJobsByCategoryAndTitle(categoryID, page, size, status, jobTitle);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "Total Job Posting: " + jobpost.getSize(), jobpost));
     }
 
-    @GetMapping("list-job-by-category/{categoryID}")
-    public ResponseEntity<CustomResult> getAllJobsByCategory(@PathVariable("categoryID") int categoryID, @RequestParam("page") int page, @RequestParam("size") int size) {
-        // Lấy danh sách công việc theo categoryID, phân trang và sắp xếp
-            Page<JobPostings> jobs = jobService.getJobsByCategory(categoryID, page, size);
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(new CustomResult(201, "Total list job: " + jobs.getTotalElements(), jobs));
-    }
-
     @GetMapping("get-jobbyid/{id}")
-    public ResponseEntity<CustomResult> getjobbyid(@PathVariable int id)  {
+    public ResponseEntity<CustomResult> getjobbyid(@PathVariable int id) {
         var jobdetail = jobService.getJobByID(id);
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -119,7 +158,8 @@ public class JobController {
     }
 
     @PutMapping("update-job-posting/{id}")
-    public ResponseEntity<CustomResult> updatejobposting(@PathVariable int id, @ModelAttribute JobPostingsDTO jobPostingDto) {
+    public ResponseEntity<CustomResult> updatejobposting(@PathVariable int id,
+            @ModelAttribute JobPostingsDTO jobPostingDto) {
         var updatejob = jobService.updateJobPostings(id, jobPostingDto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "Update Job Posting successful", updatejob));
@@ -128,7 +168,6 @@ public class JobController {
     @PostMapping("change-status/{id}")
     public ResponseEntity<CustomResult> changestatusjob(@PathVariable int id) {
         var changestatus = jobService.confirmJob(id);
-
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "get job success", changestatus));
@@ -144,23 +183,20 @@ public class JobController {
     @PostMapping("change-jobposting-close/{id}")
     public ResponseEntity<CustomResult> changestatujobpostingclose(@PathVariable int id) {
         var changestatusclose = jobService.changeStatusJobClose(id);
-
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "change status close success", changestatusclose));
     }
-
-
-
 
     /// /// FOR USER //////
     // Controller for employer
     // //////////////////////////////////////////////////////////////////////////////
 
     @GetMapping("list-job-by-employee/{id}")
-    public ResponseEntity<CustomResult> listjobbyemployer(@PathVariable Integer id,@RequestParam(defaultValue = "0") int page,
-                                                          @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<CustomResult> listjobbyemployer(@PathVariable Integer id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            Page<JobPostings> list = jobService.listJobPostingByEmployee(id,page,size);
+            Page<JobPostings> list = jobService.listJobPostingByEmployee(id, page, size);
             return ResponseEntity.ok(new CustomResult(201, "Success", list));
         } catch (BadRequestException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -170,10 +206,11 @@ public class JobController {
     }
 
     @GetMapping("list-job-by-employee-publish/{id}")
-    public ResponseEntity<CustomResult> getlistJobpublishbyemployee(@PathVariable Integer id,@RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<CustomResult> getlistJobpublishbyemployee(@PathVariable Integer id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            Page<JobPostings> list = jobService.listJobPostingPublishByEmployee(id,page,size);
+            Page<JobPostings> list = jobService.listJobPostingPublishByEmployee(id, page, size);
 
             return ResponseEntity.ok(new CustomResult(201, "List Jobposting By Publist Success", list));
 
@@ -185,10 +222,11 @@ public class JobController {
     }
 
     @GetMapping("list-job-by-employee-draft/{id}")
-    public ResponseEntity<CustomResult> getlistdraftbyemployee(@PathVariable Integer id,@RequestParam(defaultValue = "0") int page,
-                                                               @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<CustomResult> getlistdraftbyemployee(@PathVariable Integer id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            Page<JobPostings> lists = jobService.listJobPostingDraftByEmployee(id,page,size);
+            Page<JobPostings> lists = jobService.listJobPostingDraftByEmployee(id, page, size);
 
             return ResponseEntity.ok(new CustomResult(201, "List Jobposting By Publist Success", lists));
 
@@ -199,11 +237,13 @@ public class JobController {
         }
 
     }
+
     @GetMapping("list-job-by-employee-close/{id}")
-    public ResponseEntity<CustomResult> getlistclosebyemployee(@PathVariable Integer id,@RequestParam(defaultValue = "0") int page,
-                                                               @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<CustomResult> getlistclosebyemployee(@PathVariable Integer id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            Page<JobPostings> listjobclose=jobService.listJobpostingByEmployeeforclose(id,page,size);
+            Page<JobPostings> listjobclose = jobService.listJobpostingByEmployeeforclose(id, page, size);
 
             return ResponseEntity.ok(new CustomResult(201, "List Jobposting By Publist Success", listjobclose));
 
@@ -213,8 +253,10 @@ public class JobController {
         }
 
     }
+
     @PutMapping("user-update-jobposting-draft/{id}")
-    public ResponseEntity<CustomResult> updatejobpostingdraft(@PathVariable Integer id, @ModelAttribute JobPostingsDTO jobPostingsDTO) {
+    public ResponseEntity<CustomResult> updatejobpostingdraft(@PathVariable Integer id,
+            @ModelAttribute JobPostingsDTO jobPostingsDTO) {
 
         try {
             var updatejobs = jobService.updateJobPostingUser(id, jobPostingsDTO);
@@ -226,16 +268,12 @@ public class JobController {
                     .body(new CustomResult(400, e.getMessage(), null));
 
         }
-
-
-
-
     }
 
     @GetMapping("test-count-jobposting/{id}")
-    public ResponseEntity<CustomResult> getlist(@PathVariable int id ,@RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "10") int size) {
-        var list=jobService.listJobPostingPublishByEmployeeTest(id, page, size);
+    public ResponseEntity<CustomResult> getlist(@PathVariable int id, @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        var list = jobService.listJobPostingPublishByEmployeeTest(id, page, size);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new CustomResult(201, "Update Job Posting successful", list));
     }
@@ -243,13 +281,54 @@ public class JobController {
     @GetMapping("count-jobposting-by-employee/{employerID}")
     public ResponseEntity<Long> getCountJobPostingByEmployee(@PathVariable Integer employerID) {
         try {
-            Long jobcount=jobService.CountJobByEmployer(employerID);
+            Long jobcount = jobService.CountJobByEmployer(employerID);
             return ResponseEntity.ok(jobcount);
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
-
     }
+
+    @GetMapping("/growth-rate-jobposting-by-employer/{employerID}")
+    public Double getGrowthRateByEmployer(@PathVariable Integer employerID) {
+        try {
+            Double growthRate = jobService.calculateGrowthRate(employerID);
+            if (growthRate == null) {
+                return null; // Không có dữ liệu
+            }
+            return growthRate;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @GetMapping("count-job-lastmonth-by-empoyee/{employerID}")
+    public Long getCountJobLast(@PathVariable Integer employerID) {
+        Long couut = jobService.CountJobPostedThisMonthByEmployer(employerID);
+        return couut;
+    }
+
+    @GetMapping("count-job-thismonth-by-employee/{employerID}")
+    public Long getCountJobThismonth(@PathVariable Integer employerID) {
+        Long count = jobService.CountJobPostedThisMonthByEmployer(employerID);
+        return count;
+    }
+
+    // flutter controller
+    @GetMapping("Search-CateJob")
+    public ResponseEntity<CustomResult> changestatusjob(@RequestParam String searchName) {
+        var list = jobService.searchJobCate(searchName);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new CustomResult(201, "get cate job success", list));
+    }
+
+    @GetMapping("get-job-by-cateId")
+    public ResponseEntity<CustomResult> getjobbyCateId(@RequestParam Integer id) {
+        var list = jobService.getjobbycateId(id);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new CustomResult(201, "get cate job success", list));
+    }
+    
 
 }
